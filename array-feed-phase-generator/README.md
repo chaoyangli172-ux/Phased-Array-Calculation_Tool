@@ -4,7 +4,7 @@ An interactive, browser-based tool that generates ready-to-import HFSS **Edit So
 files for dual-fed, sequentially-rotated circularly-polarized phased arrays — rectangular or
 triangular (staggered-row) lattices, up to 8×8 elements.
 
-**[Live demo](#)** — runs entirely client-side, no install, no dependencies.
+**[Live demo](https://chaoyangli172-ux.github.io/Phased-Array-Calculation_Tool/array-feed-phase-generator/array_feed_generator.html)** — runs entirely client-side, no install, no dependencies.
 
 ## Why this exists
 
