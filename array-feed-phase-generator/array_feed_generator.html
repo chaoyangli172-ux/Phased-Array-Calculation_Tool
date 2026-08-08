@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Array Feed Phase Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0a0e13;
+    --panel: #10161d;
+    --panel-2: #141c25;
+    --line: #223040;
+    --line-soft: #1a2530;
+    --text: #dbe4ec;
+    --text-dim: #7c8b9a;
+    --cyan: #5eead4;
+    --amber: #f0a960;
+    --red: #e88888;
+    --mono: 'IBM Plex Mono', monospace;
+    --disp: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(94,234,212,0.05), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(240,169,96,0.04), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--disp);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 20px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  /* Header */
+  .hdr{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:26px;}
+  .hdr h1{font-size:22px;font-weight:700;margin:0;letter-spacing:0.2px;}
+  .hdr .sub{font-family:var(--mono);font-size:12px;color:var(--text-dim);letter-spacing:0.5px;}
+  .hdr .tag{font-family:var(--mono);font-size:11px;color:var(--cyan);border:1px solid rgba(94,234,212,0.35);
+    padding:3px 8px;border-radius:3px;letter-spacing:0.5px;}
+
+  /* Layout */
+  .grid2{display:grid;grid-template-columns: 340px 1fr;gap:20px;}
+  @media (max-width:880px){.grid2{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 18px 20px;margin-bottom:18px;}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-dim);
+    margin:0 0 14px;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .panel h2 .n{font-family:var(--mono);color:var(--cyan);border:1px solid rgba(94,234,212,0.35);
+    width:18px;height:18px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
+
+  label.field{display:block;margin-bottom:14px;}
+  label.field:last-child{margin-bottom:0;}
+  .flabel{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
+  select, input[type=number], input[type=text]{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:5px;outline:none;
+  }
+  select:focus, input:focus{border-color:var(--cyan);}
+
+  .radiorow{display:flex;flex-direction:column;gap:8px;}
+  .radiorow label{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--text);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:9px 10px;cursor:pointer;}
+  .radiorow label:hover{border-color:#334454;}
+  .radiorow input{margin-top:2px;accent-color:var(--cyan);}
+  .radiorow .rmain{font-weight:500;}
+  .radiorow .rsub{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .radiorow input:checked ~ .rtext .rmain{color:var(--cyan);}
+
+  .btn{
+    width:100%;background:linear-gradient(180deg,#1a2530,#141c25);color:var(--text);
+    border:1px solid var(--line);padding:11px 14px;border-radius:6px;font-family:var(--disp);
+    font-size:13.5px;font-weight:600;cursor:pointer;letter-spacing:0.2px;transition:border-color .15s, color .15s;
+  }
+  .btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+  .btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .btn.primary{background:linear-gradient(180deg, rgba(94,234,212,0.14), rgba(94,234,212,0.05));
+    border-color:rgba(94,234,212,0.5);color:var(--cyan);}
+  .btn.primary:hover:not(:disabled){background:linear-gradient(180deg, rgba(94,234,212,0.22), rgba(94,234,212,0.08));}
+  .btn.ghost{background:transparent;}
+  .btnrow{display:flex;gap:8px;}
+
+  /* Stage / canvas panel */
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;min-height:420px;
+    display:flex;flex-direction:column;}
+  .stage-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .stage-top h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-dim);margin:0;font-weight:600;}
+  .progress{font-family:var(--mono);font-size:12px;color:var(--text-dim);}
+  .progress b{color:var(--cyan);font-weight:600;}
+
+  .canvas-holder{position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:10px;
+    background:
+      linear-gradient(var(--line-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size:24px 24px;border-radius:6px;border:1px solid var(--line-soft);
+    background-color:#0c1219;
+  }
+  #gridArea{position:relative;margin-top:56px;}
+  .axis-legend{position:absolute;top:8px;left:8px;width:70px;height:70px;pointer-events:none;z-index:5;}
+  .axis-legend text.axis-legend-t{font-family:var(--mono);font-size:13px;fill:var(--amber);font-weight:600;}
+  .axis-legend text.zlabel{font-family:var(--mono);font-size:9px;fill:var(--text-dim);}
+  .cell{
+    position:absolute;
+    display:flex;align-items:center;justify-content:center;
+    border:1.5px solid #2b3d4d;background:#131c26;
+    border-radius:5px;cursor:pointer;user-select:none;
+    font-family:var(--mono);font-weight:600;
+    transition:background .12s, border-color .12s, transform .08s;
+  }
+  .cell:hover{border-color:var(--amber);}
+  .cell:active{transform:scale(0.94);}
+  .cell.on{background:rgba(94,234,212,0.14);border-color:var(--cyan);color:var(--cyan);}
+  .cell .portmark{position:absolute;bottom:3px;right:5px;font-size:8px;color:var(--text-dim);letter-spacing:0.5px;}
+
+  .empty-note{color:var(--text-dim);font-family:var(--mono);font-size:12.5px;text-align:center;line-height:1.7;}
+
+  /* CSV output */
+  .output{margin-top:18px;}
+  textarea#csvOut{
+    width:100%;height:230px;background:#0c1219;border:1px solid var(--line);color:var(--cyan);
+    font-family:var(--mono);font-size:12px;line-height:1.55;border-radius:6px;padding:12px;resize:vertical;
+  }
+  .out-actions{display:flex;gap:10px;margin-top:10px;}
+  .out-actions .btn{width:auto;padding:9px 16px;}
+
+  details.notes{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin-top:18px;}
+  details.notes summary{cursor:pointer;font-size:12.5px;color:var(--text-dim);letter-spacing:0.3px;
+    text-transform:uppercase;font-weight:600;}
+  details.notes .body{margin-top:12px;font-size:13px;line-height:1.85;color:var(--text-dim);}
+  details.notes code{font-family:var(--mono);color:var(--cyan);background:rgba(94,234,212,0.08);
+    padding:1px 5px;border-radius:3px;font-size:12px;}
+  details.notes .warn{color:var(--amber);}
+  details.notes ul{margin:6px 0 6px 18px;padding:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <div>
+      <h1>Array Feed Phase Generator</h1>
+      <div class="sub">Edit Sources · Rectangular / Triangular Sequential-Rotation CP Array</div>
+    </div>
+    <div class="tag">→ HFSS Edit Sources CSV</div>
+  </div>
+
+  <div class="grid2">
+    <!-- LEFT: config -->
+    <div>
+      <div class="panel">
+        <h2><span class="n">1</span>Array Size &amp; Grid Type</h2>
+        <label class="field">
+          <span class="flabel">Array Size N × N</span>
+          <select id="sizeSel">
+            <option value="2">2 × 2</option>
+            <option value="4" selected>4 × 4</option>
+            <option value="6">6 × 6</option>
+            <option value="8">8 × 8</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="flabel">Grid Type</span>
+          <div class="radiorow">
+            <label><input type="radio" name="gridType" value="rect" checked>
+              <span class="rtext"><div class="rmain">Rectangular Grid</div>
+              <div class="rsub">X along x-axis (downward), Y along y-axis (rightward)</div></span></label>
+            <label><input type="radio" name="gridType" value="tri1">
+              <span class="rtext"><div class="rmain">Triangular Grid A</div>
+              <div class="rsub">Columns 2/4/6... are offset by +0.5 spacing along x-axis (downward)</div></span></label>
+            <label><input type="radio" name="gridType" value="tri2">
+              <span class="rtext"><div class="rmain">Triangular Grid B (Mirrored)</div>
+              <div class="rsub">The same columns are offset by -0.5 spacing along x-axis</div></span></label>
+          </div>
+        </label>
+        <button class="btn primary" id="buildBtn">Generate Grid →</button>
+      </div>
+
+      <div class="panel" id="panel3" style="display:none;">
+        <h2><span class="n">2</span>Excitation Scheme</h2>
+        <label class="field">
+          <div class="radiorow">
+            <label><input type="radio" name="feed" value="dual" checked>
+              <span class="rtext"><div class="rmain">Dual-Port Simultaneous Excitation</div>
+              <div class="rsub">Both ports 1W, quadrature phase difference configurable</div></span></label>
+            <label><input type="radio" name="feed" value="single">
+              <span class="rtext"><div class="rmain">Single-Port Excitation</div>
+              <div class="rsub">One port 1W, the other port 0W / 0deg</div></span></label>
+          </div>
+        </label>
+        <label class="field" id="quadField">
+          <span class="flabel">Dual-Port Quadrature Phase Difference (deg)</span>
+          <input type="number" id="quadOffset" value="90" step="1">
+        </label>
+      </div>
+
+      <div class="panel" id="panel4" style="display:none;">
+        <h2><span class="n">3</span>Subarray Sequential Rotation</h2>
+        <div class="radiorow">
+          <label><input type="radio" name="rotDir" value="A" checked>
+            <span class="rtext"><div class="rmain">0° → −90° → −180° → −270°</div>
+            <div class="rsub">Rotation direction</div></span></label>
+          <label><input type="radio" name="rotDir" value="B">
+            <span class="rtext"><div class="rmain">0° → 90° → 180° → 270°</div>
+            <div class="rsub">Opposite rotation direction (alternative circular polarization handedness)</div></span></label>
+        </div>
+      </div>
+
+      <div class="panel" id="panel5" style="display:none;">
+        <h2><span class="n">4</span>Generate</h2>
+        <button class="btn primary" id="genBtn">Generate CSV</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: canvas + output -->
+    <div>
+      <div class="stage">
+        <div class="stage-top">
+          <h2>Element Layout — Click to Number Sequentially</h2>
+          <div class="progress" id="progressLbl"></div>
+        </div>
+        <div class="canvas-holder">
+          <svg class="axis-legend" viewBox="0 0 70 70">
+            <line x1="6" y1="6" x2="6" y2="46" stroke="#f0a960" stroke-width="1.6" marker-end="url(#arrowX)"/>
+            <line x1="6" y1="6" x2="46" y2="6" stroke="#f0a960" stroke-width="1.6" marker-end="url(#arrowY)"/>
+            <circle cx="6" cy="6" r="8" fill="none" stroke="#7c8b9a" stroke-width="1.2"/>
+            <line x1="1.7" y1="1.7" x2="10.3" y2="10.3" stroke="#7c8b9a" stroke-width="1.2"/>
+            <line x1="10.3" y1="1.7" x2="1.7" y2="10.3" stroke="#7c8b9a" stroke-width="1.2"/>
+            <text x="9" y="55" class="axis-legend-t">x</text>
+            <text x="50" y="10" class="axis-legend-t">y</text>
+            <text x="10" y="24" class="zlabel">z into screen</text>
+            <defs>
+              <marker id="arrowX" markerWidth="6" markerHeight="6" refX="3" refY="5" orient="auto">
+                <path d="M0,0 L6,0 L3,6 Z" fill="#f0a960"/>
+              </marker>
+              <marker id="arrowY" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#f0a960"/>
+              </marker>
+            </defs>
+          </svg>
+          <div id="gridArea">
+            <div class="empty-note" id="emptyNote">Select array size and grid type, then click "Generate Grid" to start.</div>
+          </div>
+        </div>
+        <div class="progress" style="margin-top:8px;">Top view coordinate system: x downward, y rightward, z pointing into the screen (see top-left legend)</div>
+        <div class="btnrow" style="margin-top:14px;" id="resetRow" style="display:none;">
+          <button class="btn ghost" id="undoBtn" style="display:none;">Undo Last</button>
+          <button class="btn ghost" id="resetBtn" style="display:none;">Reset Numbering</button>
+        </div>
+      </div>
+
+      <div class="output" id="outputBlock" style="display:none;">
+        <div class="panel" style="margin-bottom:0;">
+          <h2><span class="n">5</span>Edit Sources CSV</h2>
+          <textarea id="csvOut" spellcheck="false" readonly></textarea>
+          <div class="out-actions">
+            <button class="btn primary" id="downloadBtn">Download .csv</button>
+            <button class="btn ghost" id="copyBtn">Copy to Clipboard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <details class="notes">
+    <summary>Formulas and Assumptions (Click to expand)</summary>
+    <div class="body">
+      The coordinate system is consistent with the HFSS top view: <code>x downward, y rightward, z pointing into the screen</code>. The physical coordinates of the antenna elements are denoted as (i, j),
+      where i is the index along the x-axis (downward) and j is the index along the y-axis (rightward), both starting from 0.
+      <b>The top-left element (i=0, j=0) is always the reference element</b> — the dx and dy coefficients for this element are strictly 0 for all three grid types.
+      The local indices within each 2×2 subarray are mapped as <code>(i%2,j%2) = (0,0)→L0, (1,0)→L1, (1,1)→L2, (0,1)→L3</code>
+      (consistent with the 90/0/−90/−180 sequential rotation order in the reference file).
+      <ul>
+        <li><b>Rectangular Grid:</b> <code>X = i</code>, <code>Y = j</code>.</li>
+        <li><b>Triangular Grid A:</b> <code>X = 2·i + (j mod 2)</code>, <code>Y = j</code> (Columns 2/4/6... are collectively offset by +0.5 spacing along the x-axis). Verified line-by-line against all 32 ports in sc44tri.csv with zero error.</li>
+        <li><b>Triangular Grid B (Mirrored):</b> <code>X = 2·i − (j mod 2)</code>, <code>Y = j</code> (The same columns are instead offset by -0.5 spacing along the x-axis, with the reference element remaining 0). Verified line-by-line against all 32 ports in sc44single.csv with zero error.</li>
+      </ul>
+      Phase per port = <code>base − dx·X − dy·Y</code>, where <code>base</code> takes a value from the sequential rotation sequence
+      either <code>[0,−90,−180,−270]</code> or <code>[0,90,180,270]</code> (indexed by the subarray local index L0..L3).
+      For dual-port excitation, Port A = Port B base <b>±</b> quadrature phase difference (use + for rotation A and - for rotation B, perfectly matching sc44.csv / sc44tri.csv); for single-port excitation, the excited port directly uses the Port B formula (perfectly matching sc44single.csv).
+      <p>In the previous version, the mirror formula for Triangular Grid B was reversed (using <code>(j+1) mod 2</code>), causing the reference element to be non-zero and resulting in an overall dx coefficient difference of 2×dx compared to sc44single.csv — as you pointed out, this is fundamentally because when fixing the top-left as the reference element for the two triangular grids, the first element of columns 2/4/6... takes <code>+dx</code> and <code>−dx</code> respectively. This has now been corrected to the <code>X = 2·i ± (j mod 2)</code> format above, with both directions strictly zeroed at the reference element.</p>
+    </div>
+  </details>
+
+</div>
+
+<script>
+(function(){
+  let N = 4;
+  let gridType = 'rect';
+  let cells = []; // {i,j,order}  i = x-direction (down), j = y-direction (right)
+  let orderCounter = 0;
+  let orderHistory = []; // stack of cell indices assigned, for undo
+
+  const sizeSel = document.getElementById('sizeSel');
+  const buildBtn = document.getElementById('buildBtn');
+  const gridArea = document.getElementById('gridArea');
+  const emptyNote = document.getElementById('emptyNote');
+  const progressLbl = document.getElementById('progressLbl');
+  const undoBtn = document.getElementById('undoBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const panel3 = document.getElementById('panel3');
+  const panel4 = document.getElementById('panel4');
+  const panel5 = document.getElementById('panel5');
+  const genBtn = document.getElementById('genBtn');
+  const outputBlock = document.getElementById('outputBlock');
+  const csvOut = document.getElementById('csvOut');
+  const quadField = document.getElementById('quadField');
+
+  document.querySelectorAll('input[name=feed]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      quadField.style.display = document.querySelector('input[name=feed]:checked').value==='dual' ? 'block':'none';
+    });
+  });
+
+  buildBtn.addEventListener('click', buildGrid);
+  undoBtn.addEventListener('click', undoLast);
+  resetBtn.addEventListener('click', resetNumbering);
+  genBtn.addEventListener('click', generateCSV);
+  document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+  document.getElementById('copyBtn').addEventListener('click', copyCSV);
+
+  function buildGrid(){
+    N = parseInt(sizeSel.value,10);
+    gridType = document.querySelector('input[name=gridType]:checked').value;
+    cells = [];
+    orderCounter = 0;
+    orderHistory = [];
+    for(let i=0; i<N; i++){
+      for(let j=0; j<N; j++){
+        cells.push({i, j, order:null});
+      }
+    }
+    renderGrid();
+    panel3.style.display='block';
+    panel4.style.display='block';
+    panel5.style.display='block';
+    outputBlock.style.display='none';
+    undoBtn.style.display='inline-block';
+    resetBtn.style.display='inline-block';
+    updateProgress();
+  }
+
+  function renderGrid(){
+    emptyNote.style.display='none';
+    gridArea.innerHTML='';
+    const cellSize = N<=4 ? 64 : (N<=6 ? 52 : 42);
+    const gap = 10;
+    const stagger = (gridType!=='rect') ? cellSize/2 : 0;
+    const totalW = N*(cellSize+gap);
+    const totalH = N*(cellSize+gap) + stagger; // extra room for the +stagger offset on the last row
+
+    // extra top padding so the axis-legend (top-left) never overlaps row 0
+    gridArea.style.marginTop = '0px';
+    gridArea.style.width = totalW+'px';
+    gridArea.style.height = totalH+'px';
+
+    cells.forEach((c, idx)=>{
+      const div = document.createElement('div');
+      div.className='cell';
+      div.style.width=cellSize+'px';
+      div.style.height=cellSize+'px';
+      div.style.fontSize = (cellSize*0.34)+'px';
+
+      let yStagger = 0;
+      if(gridType==='tri1' && c.j%2===1) yStagger = stagger; // odd column shifted down (+dx)
+      if(gridType==='tri2' && c.j%2===0) yStagger = stagger; // even column shifted down (mirrors -dx on odd column)
+
+      const left = c.j*(cellSize+gap);
+      const top  = c.i*(cellSize+gap) + yStagger;
+      div.style.left = left+'px';
+      div.style.top = top+'px';
+      div.textContent = c.order!==null ? c.order : '';
+      if(c.order!==null) div.classList.add('on');
+
+      div.addEventListener('click', ()=> assignOrder(idx));
+      gridArea.appendChild(div);
+    });
+  }
+
+  function assignOrder(idx){
+    if(cells[idx].order!==null) return; // already numbered — click undo instead
+    if(orderCounter >= N*N) return;
+    orderCounter++;
+    cells[idx].order = orderCounter;
+    orderHistory.push(idx);
+    renderGrid();
+    updateProgress();
+  }
+
+  function undoLast(){
+    if(orderHistory.length===0) return;
+    const idx = orderHistory.pop();
+    cells[idx].order = null;
+    orderCounter--;
+    renderGrid();
+    updateProgress();
+  }
+
+  function resetNumbering(){
+    cells.forEach(c=>c.order=null);
+    orderCounter=0;
+    orderHistory=[];
+    renderGrid();
+    updateProgress();
+    outputBlock.style.display='none';
+  }
+
+  function updateProgress(){
+    progressLbl.innerHTML = '<b>'+orderCounter+'</b> / '+ (N*N) +' Numbered';
+    genBtn.disabled = orderCounter !== N*N;
+  }
+  genBtn.disabled = true;
+
+  // ---- phase math ----
+  // i = index along x (down), j = index along y (right); (0,0) top-left is always the reference element.
+  function localIndex(i,j){
+    const a = i%2, b = j%2;
+    if(a===0 && b===0) return 0;
+    if(a===1 && b===0) return 1;
+    if(a===1 && b===1) return 2;
+    return 3; // a===0 && b===1
+  }
+  function positionXY(i,j,gt){
+    if(gt==='rect') return {X:i, Y:j};
+    if(gt==='tri1') return {X: 2*i + (j%2), Y: j};
+    return {X: 2*i - (j%2), Y: j}; // tri2 (mirror) — reference (0,0) still zero
+  }
+  function term(varName, coeff){
+    if(coeff===0) return '';
+    const sign = coeff>0 ? '+' : '-';
+    const a = Math.abs(coeff);
+    return sign + (a===1 ? varName : (varName+'*'+a));
+  }
+  function phaseStr(baseDeg, X, Y){
+    let s = baseDeg + 'deg';
+    s += term('dx', -X);
+    s += term('dy', -Y);
+    return s;
+  }
+
+  function generateCSV(){
+    const feed = document.querySelector('input[name=feed]:checked').value;
+    const rotDir = document.querySelector('input[name=rotDir]:checked').value;
+    const quadOffset = parseFloat(document.getElementById('quadOffset').value) || 90;
+    const seq = rotDir==='A' ? [0,-90,-180,-270] : [0,90,180,270];
+
+    const ordered = cells.slice().sort((a,b)=>a.order-b.order);
+    const rows = ['Source,Magnitude,Phase'];
+
+    ordered.forEach(c=>{
+      const m = c.order;
+      const k = localIndex(c.i,c.j);
+      const {X,Y} = positionXY(c.i,c.j,gridType);
+      const baseB = seq[k];
+      const phaseB = phaseStr(baseB, X, Y);
+
+      if(feed==='dual'){
+        const baseA = rotDir==='A' ? baseB + quadOffset : baseB - quadOffset;
+        const phaseA = phaseStr(baseA, X, Y);
+        rows.push((2*m-1)+':1,1W,'+phaseA);
+        rows.push((2*m)+':1,1W,'+phaseB);
+      } else {
+        rows.push((2*m-1)+':1,1W,'+phaseB);
+        rows.push((2*m)+':1,0W,0deg');
+      }
+    });
+
+    csvOut.value = rows.join('\r\n') + '\r\n';
+    outputBlock.style.display='block';
+  }
+
+  function downloadCSV(){
+    if(!csvOut.value) return;
+    const blob = new Blob([csvOut.value], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'edit_sources_'+N+'x'+N+'_'+gridType+'.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function copyCSV(){
+    csvOut.select();
+    document.execCommand('copy');
+  }
+
+})();
+</script>
+</body>
+</html>
