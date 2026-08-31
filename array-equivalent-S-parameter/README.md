@@ -22,6 +22,9 @@ The MATLAB algorithm processes the active S-parameter data from all ports and ca
 
 The resulting equivalent S-parameter can then be used to evaluate the overall RF performance of the array more accurately.
 
+The results would be like.  
+<img width="741" height="198" alt="image" src="https://github.com/user-attachments/assets/130d7100-49c3-41e7-a586-2ec387bd10b4" />
+
 ## Why Equivalent S-Parameters?
 
 For a large phased array, the S-parameter measured or calculated at a single port does not necessarily reflect the behavior of the entire array, especially when:
